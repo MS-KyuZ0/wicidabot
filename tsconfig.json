@@ -17,6 +17,8 @@
     "declarationMap": false,
     // Stricter Typechecking Options
     "exactOptionalPropertyTypes": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     // Recommended Options
     "strict": true,
     "skipLibCheck": true,
