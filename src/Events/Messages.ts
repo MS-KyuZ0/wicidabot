@@ -1,53 +1,46 @@
-const activeChats = new Map()
+import * as Config from '../../config.json'
+import { findBestAnswer } from '../Utils/knowledgeBase'
+import { resetTimeout, userSessions } from '../Utils/sessionManager'
 
 module.exports = {
     name: 'messages.upsert',
     async execute(WhatsAppClient: any, connectToWhatsApp: any, res: any) {
-        const message = res.messages[0];
+        const message = res.messages[0]
         const isMsg = message.message
 
-        if (!isMsg || message.key.fromMe) return;
+        if (!isMsg || message.key.fromMe) return
 
-        const sender = message.key.remoteJid;
+        const sender = message.key.remoteJid
+        if (!sender) return
 
-        if (!sender) return;
+        const textMessage = (isMsg.conversation || isMsg.extendedTextMessage?.text)?.trim()
+        if (!textMessage) return
 
-        const type = Object.keys(isMsg)[0]
-        const textMessage = isMsg.conversation || isMsg.extendedTextMessage?.text
-        const isCommand = textMessage?.toLocaleLowerCase()
-
-        if (activeChats.has(sender)) {
-            const session = activeChats.get(sender)
-
-            if (isCommand === "menu1") {
-                await WhatsAppClient.sendMessage(sender, {text: "ini menu1"});
-                clearTimeout(session.timeout);
-                activeChats.delete(sender);
-                return;
+        if (!userSessions[sender]) {
+            userSessions[sender] = { active: true }
+            try {
+                await WhatsAppClient.sendMessage(sender, { text: Config.pesanPembuka })
+            } catch (err) {
+                console.error('Gagal kirim pesan pembuka:', err)
             }
-
-            if (isCommand === "menu2") {
-                await WhatsAppClient.sendMessage(sender, {text: "ini menu2"});
-                clearTimeout(session.timeout);
-                activeChats.delete(sender);
-                return;
-            }
-
-            await WhatsAppClient.sendMessage(sender, {text: 'Silahkan pilih salah satu menu yang tersedia.'});
-            return;
+            resetTimeout(sender, WhatsAppClient)
+            return
         }
 
-        await WhatsAppClient.sendMessage(sender, {
-            text: 'Halo! 👋 Selamat datang di layanan kami.\nSilakan pilih menu di bawah ini:',
-        });
+        resetTimeout(sender, WhatsAppClient)
 
-        const timeout = setTimeout(async () => {
-            await WhatsAppClient.sendMessage(sender, {
-                text: '⏰ Waktu habis! Percakapan telah berakhir. Jika ingin mulai lagi, kirim pesan baru ya!',
-            });
-            activeChats.delete(sender);
-        }, 5 * 60 * 1000); // 5 menit
+        const answer = findBestAnswer(textMessage)
 
-        activeChats.set(sender, { timeout });
+        try {
+            if (answer) {
+                await WhatsAppClient.sendMessage(sender, { text: answer })
+            } else {
+                await WhatsAppClient.sendMessage(sender, {
+                    text: "Maaf, aku belum punya jawaban untuk itu 😅\nKalau kamu mau menghubungi admin, silakan ketik *Hubungi Admin* ya!"
+                })
+            }
+        } catch (err) {
+            console.error('Gagal kirim jawaban:', err)
+        }
     }
 }
