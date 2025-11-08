@@ -1,4 +1,4 @@
-import * as Config from '../../config.json'
+import * as thisText from '../Utils/textFunction'
 import { findBestAnswer } from '../Utils/knowledgeBase'
 import { resetTimeout, userSessions } from '../Utils/sessionManager'
 
@@ -19,7 +19,7 @@ module.exports = {
         if (!userSessions[sender]) {
             userSessions[sender] = { active: true }
             try {
-                await WhatsAppClient.sendMessage(sender, { text: Config.pesanPembuka })
+                thisText.welcomeMessage(WhatsAppClient, sender)
             } catch (err) {
                 console.error('Gagal kirim pesan pembuka:', err)
             }
@@ -35,9 +35,7 @@ module.exports = {
             if (answer) {
                 await WhatsAppClient.sendMessage(sender, { text: answer })
             } else {
-                await WhatsAppClient.sendMessage(sender, {
-                    text: "Maaf, aku belum punya jawaban untuk itu 😅\nKalau kamu mau menghubungi admin, silakan ketik *Hubungi Admin* ya!"
-                })
+                thisText.notFoundKeyword(WhatsAppClient, sender)
             }
         } catch (err) {
             console.error('Gagal kirim jawaban:', err)
