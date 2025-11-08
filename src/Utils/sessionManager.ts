@@ -14,7 +14,6 @@ export function resetTimeout(sender: string, WhatsAppClient: any) {
         clearTimeout(userSessions[sender].timeout)
     }
 
-    // Set ulang 5 menit (300.000 ms)
     userSessions[sender].timeout = setTimeout(async () => {
         try {
             thisText.closingMessage(WhatsAppClient, sender)
