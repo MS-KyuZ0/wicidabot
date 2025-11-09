@@ -10,3 +10,7 @@ export function closingMessage(WhatsAppClient: any, sender: string){
 export function notFoundKeyword(WhatsAppClient: any, sender: string){
     WhatsAppClient.sendMessage(sender, {text: `Maaf untuk hal ini kamu perlu datang ke BAAK untuk tanya langsung atau perlu saya bantu untuk langsung hubungkan dengan Admin BAAK ?`})
 }
+
+export function moreQuestion(WhatsAppClient: any, sender: string){
+    WhatsAppClient.sendMessage(sender, {text: `Apakah masih ada pertanyaan lain ? Jika tidak ada kamu bisa abaikan pesan ini.`})
+}
