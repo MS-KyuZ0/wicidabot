@@ -1,6 +1,10 @@
 import * as thisText from '../Utils/textFunction'
-import { findBestAnswer } from '../Utils/knowledgeBase'
+import * as Config from '../../config.json'
+import { keywordIndex, loadKnowledgeBase } from '../Utils/knowledgeBase'
 import { resetTimeout, userSessions } from '../Utils/sessionManager'
+import { similarity } from '../Utils/typoHandle'
+
+loadKnowledgeBase()
 
 module.exports = {
     name: 'messages.upsert',
@@ -29,16 +33,34 @@ module.exports = {
 
         resetTimeout(sender, WhatsAppClient)
 
-        const answer = findBestAnswer(textMessage)
+        let hasAnswer = null
+        let bestScore = 0
+        const isMessage = textMessage.toLowerCase().normalize('NFKC').replace(/[^\w\s]/gi, ' ').replace(/\s+/g, ' ').trim()
+
+        for (const [key, kb] of keywordIndex.entries()) {
+            const regex = new RegExp(`\\b${key}\\b`)
+
+            if (regex.test(isMessage)) {
+                hasAnswer = kb
+                break
+            }
+
+            const score = similarity(key, isMessage)
+
+            if (score > bestScore && score >= Config.typoThreshold){
+                hasAnswer = kb
+                bestScore = score
+            }
+        }
+
+        if (!hasAnswer) return thisText.notFoundKeyword(WhatsAppClient, sender)
 
         try {
-            if (answer) {
-                await WhatsAppClient.sendMessage(sender, { text: answer })
-            } else {
-                thisText.notFoundKeyword(WhatsAppClient, sender)
-            }
+            await hasAnswer.execute(WhatsAppClient, sender)
+            thisText.moreQuestion(WhatsAppClient, sender)
         } catch (err) {
-            console.error('Gagal kirim jawaban:', err)
+            console.log(`[KnowledgeBase] Error executing keyword: ${err}`)
+            thisText.notFoundKeyword(WhatsAppClient, sender)
         }
     }
 }
